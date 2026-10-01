@@ -134,11 +134,64 @@
 
   function isEditMode() { return document.body.classList.contains('edit-mode'); }
 
+  function setPanelStatus(message, kind='') {
+    const el = document.querySelector('#' + PANEL_ID + ' [data-cms-save-status]');
+    if (!el) return;
+    el.textContent = message;
+    el.dataset.state = kind;
+  }
+
+  async function saveEverything() {
+    const active = document.activeElement;
+    if (active && typeof active.blur === 'function') active.blur();
+
+    const nativeSave = document.getElementById('saveButton');
+    const saveBar = document.getElementById('saveBar');
+    if (nativeSave && saveBar && !saveBar.classList.contains('hidden')) nativeSave.click();
+
+    saveStore();
+    setPanelStatus('온라인 저장 중…', 'saving');
+
+    try {
+      if (window.SENA_CLOUD_SYNC?.save) {
+        const ok = await window.SENA_CLOUD_SYNC.save();
+        if (!ok) throw new Error('온라인 저장에 실패했습니다.');
+      }
+      setPanelStatus('저장 완료', 'saved');
+      const toast = document.getElementById('toast');
+      if (toast) {
+        toast.textContent = '변경사항을 온라인에 저장했습니다.';
+        toast.className = 'toast success';
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 2200);
+      }
+      return true;
+    } catch (e) {
+      console.error(e);
+      setPanelStatus('저장 실패 · 다시 눌러주세요', 'error');
+      return false;
+    }
+  }
+
+  async function exitEditMode() {
+    const ok = await saveEverything();
+    if (!ok) return;
+    document.getElementById('editToggle')?.click();
+  }
+
   function panelHtml() {
     return `<aside id="${PANEL_ID}" class="universal-cms-panel hidden" aria-label="전체 편집 도구">
-      <div class="cms-panel-head"><strong>전체 편집</strong><button type="button" data-cms-action="collapse">−</button></div>
+      <div class="cms-panel-head">
+        <strong>전체 편집</strong>
+        <div class="cms-panel-head-actions">
+          <button type="button" class="cms-save-primary" data-cms-action="save">저장</button>
+          <button type="button" class="cms-exit-button" data-cms-action="exit">편집 종료</button>
+          <button type="button" data-cms-action="collapse" aria-label="접기">−</button>
+        </div>
+      </div>
       <div class="cms-panel-body">
-        <div class="cms-help">편집 모드에서 <b>바꾸고 싶은 요소를 클릭</b>하세요. 텍스트·색·크기·이미지를 직접 바꿀 수 있습니다. 기존 편집 버튼을 고르려면 그대로 클릭하고, 버튼 자체를 꾸미려면 Alt+클릭하세요.</div>
+        <div class="cms-save-status" data-cms-save-status data-state="idle">수정 후 위의 <b>저장</b>을 누르면 친구 화면에도 반영됩니다.</div>
+        <div class="cms-help">바꾸고 싶은 요소를 클릭하세요. 텍스트·색·크기·이미지를 직접 바꿀 수 있습니다. 기존 편집 버튼을 고르려면 그대로 클릭하고, 버튼 자체를 꾸미려면 Alt+클릭하세요.</div>
         <div class="cms-selected-name" data-cms-selected>선택된 요소 없음</div>
         <label class="cms-row cms-text-row"><span>텍스트</span><textarea data-cms-text rows="3" placeholder="텍스트 요소를 선택하세요"></textarea></label>
         <div class="cms-color-grid">
@@ -250,6 +303,8 @@
     const a = e.target.closest('[data-cms-action]'); if (!a) return;
     const action=a.dataset.cmsAction;
     if (action==='collapse') { p.classList.toggle('collapsed'); a.textContent=p.classList.contains('collapsed')?'＋':'−'; return; }
+    if (action==='save') { saveEverything(); return; }
+    if (action==='exit') { exitEditMode(); return; }
     if (action==='export') {
       const blob=new Blob([JSON.stringify(store,null,2)],{type:'application/json'}); const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download='senaguide-page-edits.json'; link.click(); setTimeout(()=>URL.revokeObjectURL(link.href),1000); return;
     }
