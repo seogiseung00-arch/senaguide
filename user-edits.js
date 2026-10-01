@@ -17,3 +17,19 @@
   });
   window.DEFAULT_DATA.version = 11;
 })();
+
+
+;(() => {
+  const p = window.DEFAULT_DATA;
+  if (!p) return;
+  p.portraits ||= {};
+  Object.assign(p.portraits, {
+    "연희": "assets/portraits/custom/yeonhee.webp",
+    "오르카": "assets/portraits/custom/orca.webp",
+    "윤건": "assets/portraits/custom/yoongeon.webp",
+    "하연": "assets/portraits/custom/hayeon.webp",
+    "스쿨드": "assets/portraits/custom/skuld.webp",
+    "동영": "assets/portraits/custom/dongyeong.webp"
+  });
+  (p.couponCodes || []).forEach(c => { c.note = ""; });
+})();
