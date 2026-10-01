@@ -28,6 +28,10 @@ jobs:
         run: |
           mkdir -p _site
           tar -xzf site.tar.gz -C _site
+          cp user-edits.js _site/user-edits.js
+          sed -i 's#<script src="app.js"></script>#<script src="user-edits.js"></script>\n  <script src="app.js"></script>#' _site/index.html
+          sed -i "s/const STORAGE_KEY = 'rebornGuideArchiveStateV10';/const STORAGE_KEY = 'rebornGuideArchiveStateV11';/" _site/app.js
+          sed -i "s/const LEGACY_STORAGE_KEYS = .*/const LEGACY_STORAGE_KEYS = [];/" _site/app.js
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
