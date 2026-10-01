@@ -245,7 +245,8 @@
     if (!selected) {
       name.textContent = '선택된 요소 없음'; text.value=''; text.disabled=true; size.value=''; weight.value=''; imgTools.classList.add('hidden'); return;
     }
-    name.textContent = `${selected.tagName.toLowerCase()}${selected.classList.length ? ' · ' + [...selected.classList].filter(c=>c!=='cms-selected').slice(0,2).join('.') : ''}`;
+    const preview = selected.childElementCount === 0 ? selected.textContent.trim().replace(/\s+/g,' ').slice(0,32) : '';
+    name.textContent = `${selected.tagName.toLowerCase()}${selected.classList.length ? ' · ' + [...selected.classList].filter(c=>c!=='cms-selected').slice(0,2).join('.') : ''}${preview ? ' · “' + preview + '”' : ''}`;
     text.disabled = selected.childElementCount > 0 || ['IMG','INPUT','TEXTAREA','SELECT'].includes(selected.tagName);
     text.value = text.disabled ? '' : selected.textContent;
     const cs = getComputedStyle(selected);
@@ -258,15 +259,22 @@
   function pickElement(target) {
     if (!isEditMode()) return;
     if (target.closest(`#${PANEL_ID}, #saveBar, #imageModal, .global-search-wrap, #editToggle`)) return;
-    selected = target.nodeType === 1 ? target : target.parentElement;
+    let next = target.nodeType === 1 ? target : target.parentElement;
+    if (next && next.childElementCount > 0) {
+      const leaves = [...next.querySelectorAll('b, strong, span, p, h1, h2, h3, h4, code')]
+        .filter(el => el.childElementCount === 0 && el.textContent.trim() && getComputedStyle(el).display !== 'none');
+      if (leaves.length === 1) next = leaves[0];
+    }
+    selected = next;
     syncPanel();
   }
 
   document.addEventListener('click', e => {
     if (!isEditMode()) return;
+    if (e.target.closest(`#${PANEL_ID}, #saveBar, #imageModal, .global-search-wrap, #editToggle`)) return;
     const p = e.target.closest(`#${PANEL_ID}`);
     if (p) return;
-    const target = e.target.closest('img, code, strong, span, p, h1, h2, h3, h4, td, th, article, section, div, button, a');
+    const target = e.target.closest('img, code, b, strong, span, p, h1, h2, h3, h4, td, th, article, section, div, button, a');
     if (!target) return;
     if (target.closest('.modal, .save-bar')) return;
     if (e.target.closest('[data-action], [data-route], [data-category-filter], [data-guide-tab], [data-pvp-open], [data-open-image], [data-copy-coupon-index], [data-setting-color]')) {
@@ -290,6 +298,7 @@
       if (e.target.value) ov.value.fontWeight = e.target.value; else delete ov.value.fontWeight; applyOne(selected, ov.value);
     }
     saveStore();
+    setPanelStatus('변경됨 · 저장을 눌러주세요', 'dirty');
   });
 
   document.addEventListener('click', e => {
