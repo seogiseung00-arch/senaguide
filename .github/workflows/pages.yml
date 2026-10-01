@@ -33,10 +33,28 @@ jobs:
           cp user-edits.js _site/user-edits.js
           cp cms-editor.js _site/cms-editor.js
           cp cms-editor.css _site/cms-editor.css
+          cp cloud-sync.js _site/cloud-sync.js
           sed -i 's#</head>#  <link rel="stylesheet" href="cms-editor.css">\n</head>#' _site/index.html
-          sed -i 's#<script src="app.js"></script>#<script src="user-edits.js"></script>\n  <script src="app.js"></script>\n  <script src="cms-editor.js"></script>#' _site/index.html
+          sed -i 's#<script src="app.js"></script>#<script src="user-edits.js"></script>\n  <script src="app.js"></script>\n  <script src="cloud-sync.js"></script>\n  <script src="cms-editor.js"></script>#' _site/index.html
           sed -i "s/const STORAGE_KEY = 'rebornGuideArchiveStateV10';/const STORAGE_KEY = 'rebornGuideArchiveStateV12';/" _site/app.js
           sed -i "s/const LEGACY_STORAGE_KEYS = .*/const LEGACY_STORAGE_KEYS = [];/" _site/app.js
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('_site/app.js')
+          s = p.read_text(encoding='utf-8')
+          old = """      const password=prompt('편집 비밀번호를 입력하세요.');
+                if(password===null)return;
+                if(password.trim()!==EDIT_PASSWORD){alert('비밀번호가 올바르지 않습니다.');return;}
+                editMode=true;"""
+          new = """      if (!window.SENA_CLOUD_AUTH?.isAdmin()) {
+                window.SENA_CLOUD_AUTH?.openLogin();
+                return;
+              }
+              editMode=true;"""
+          if old not in s:
+              raise SystemExit('edit auth patch target not found')
+          p.write_text(s.replace(old, new), encoding='utf-8')
+          PY
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
