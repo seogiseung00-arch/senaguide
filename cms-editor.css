@@ -17,3 +17,5 @@
   .cms-panel-head-actions{flex-wrap:wrap;justify-content:flex-end}
   .cms-panel-head-actions button{padding:6px 8px;font-size:11px}
 }
+
+.cms-save-status[data-state="dirty"]{border-color:#8b7336;color:#f2d98e;background:#171406}
